@@ -120,6 +120,14 @@ def write_phits_cell_def(definition, tabspace=0, offset=0):
     return sdef.str
 
 
+def write_mcdc_cell_def(definition, tabspace=0, offset=0):
+    sdef = CellString(tabspace=tabspace)
+    str_def = remove_redundant(write_sequence_mcdc(definition))
+    sdef.add(str_def)
+    sdef.wrap_line(offset)
+    return sdef.str
+
+
 def write_openmc_region(definition, options, w_type="XML"):
     if w_type == "XML":
         return write_sequence_omc_xml(definition)
@@ -236,6 +244,25 @@ def write_sequence_omc_py(seq, options, prefix="S"):
         else:
             line = f"({' | '.join(terms)})"
     return line
+
+
+def write_sequence_mcdc(seq, prefix="S"):
+    if seq.level == 0:
+        terms = []
+        for e in seq.elements:
+            strSurf = f"{prefix}{abs(e)}"
+            terms.append(f"~{strSurf}" if e < 0 else strSurf)
+        op = " & " if seq.operator == "AND" else " | "
+        return "(" + op.join(terms) + ")"
+    parts = []
+    for e in seq.elements:
+        if isinstance(e, int):
+            strSurf = f"{prefix}{abs(e)}"
+            parts.append(f"~{strSurf}" if e < 0 else strSurf)
+        else:
+            parts.append(write_sequence_mcdc(e, prefix))
+    op = " & " if seq.operator == "AND" else " | "
+    return "(" + op.join(parts) + ")"
 
 
 def mcnp_surface(id, Type, surf, options, tolerances, numeric_format):
