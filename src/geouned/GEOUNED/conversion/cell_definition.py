@@ -84,6 +84,8 @@ def get_id(facein, surfaces, options, tolerances, numeric_format):
                 atol=tolerances.tor_angle,
                 rel_tol=tolerances.relativeTol,
             ):
+                if s.Surf.Degenerated:
+                    s.Surf.a_sign = facein.a_sign  # only one degenerated surface can be present at once
                 return s.Index
 
     return 0
@@ -324,8 +326,9 @@ def gen_plane_cylinder(face, solid, tolerances):
         return None
 
     normal = p2.sub(p1).cross(face.Surface.Axis)
+    if normal.Length < 1e-10:
+        return None
     plane = Part.Plane(p1, normal).toShape()
-
     return plane
 
 
@@ -374,7 +377,7 @@ def gen_plane_cone(face, solid, tolerances):
     return plane
 
 
-def gen_torus_annex_u_planes(face, u_params, tolerances):
+def gen_torus_annex_u_planes(face, u_params, vmid, tolerances):
 
     if is_parallel(face.Surface.Axis, FreeCAD.Vector(1, 0, 0), tolerances.tor_angle):
         axis = FreeCAD.Vector(1, 0, 0)
@@ -384,9 +387,9 @@ def gen_torus_annex_u_planes(face, u_params, tolerances):
         axis = FreeCAD.Vector(0, 0, 1)
 
     center = face.Surface.Center
-    p1 = face.valueAt(u_params[0], 0.0)
-    p2 = face.valueAt(u_params[1], 0.0)
-    pmid = face.valueAt(0.5 * (u_params[0] + u_params[1]), 0.0)
+    p1 = face.valueAt(u_params[0], vmid)
+    p2 = face.valueAt(u_params[1], vmid)
+    pmid = face.valueAt(0.5 * (u_params[0] + u_params[1]), vmid)
 
     if is_same_value(abs(u_params[1] - u_params[0]), math.pi, tolerances.value):
         d = axis.cross(p2 - p1)
@@ -590,7 +593,11 @@ def cellDef(meta_obj, surfaces, universe_box, options, tolerances, numeric_forma
                             surf_obj.append(p.shape)
 
             elif surface_type == "<Toroid object>":
-
+                if face.Surface.Degenerated and face.Surface.a_sign < 0:
+                    if orient == "Forward":
+                        orient = "Reversed"
+                    else:
+                        orient = "Forward"
                 if (
                     is_parallel(face.Surface.Axis, FreeCAD.Vector(1, 0, 0), tolerances.angle)
                     or is_parallel(face.Surface.Axis, FreeCAD.Vector(0, 1, 0), tolerances.angle)
@@ -600,6 +607,8 @@ def cellDef(meta_obj, surfaces, universe_box, options, tolerances, numeric_forma
                     idT = get_id(face.Surface, surfaces, options, tolerances, numeric_format)
 
                     index, u_params = solid_gu.TorusUParams[iface]
+                    dummy, v_params = solid_gu.TorusVParams[iface]
+                    vmid = 0.5 * (v_params[1][0] + v_params[1][1])
                     if index == last_torus:
                         continue
                     last_torus = index
@@ -608,7 +617,7 @@ def cellDef(meta_obj, surfaces, universe_box, options, tolerances, numeric_forma
                     u_closed, u_minMax = u_params
                     # u_closed = True
                     if not u_closed:
-                        planes, ORop = gen_torus_annex_u_planes(face, u_minMax, tolerances)
+                        planes, ORop = gen_torus_annex_u_planes(face, u_minMax, vmid, tolerances)
                         plane1, plane2 = planes
                         plane = GeounedSurface(("Plane", plane1), universe_box, Face="Build")
                         id1, exist = surfaces.add_plane(plane, options, tolerances, numeric_format, False)
@@ -639,7 +648,7 @@ def cellDef(meta_obj, surfaces, universe_box, options, tolerances, numeric_forma
                     else:
                         index, Vparams = solid_gu.TorusVParams[iface]
                         VClosed, VminMax = Vparams
-                        if VClosed:
+                        if VClosed or face.Surface.Degenerated:
                             v_var = "%i" % idT
                         else:
                             surf_params, surf_type, in_surf = gen_torus_annex_v_surface(

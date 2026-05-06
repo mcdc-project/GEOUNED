@@ -137,6 +137,17 @@ class TorusGu(SurfacesGu):
         self.Axis = face.Surface.Axis
         self.MajorRadius = face.Surface.MajorRadius
         self.MinorRadius = face.Surface.MinorRadius
+        self.Degenerated = face.Surface.MinorRadius > face.Surface.MajorRadius
+        if self.Degenerated:
+            self.a_sign = self.degenerate_surface_type()
+        else:
+            self.a_sign = 1
+
+    def degenerate_surface_type(self):
+        vertex = self.face.Vertexes[0].Point
+        r = vertex - self.Surface.Center
+        outer = r.Length > math.sqrt(self.MinorRadius**2 - self.MajorRadius**2)
+        return 1 if outer else -1
 
     def isSameSurface(self, surface):
         if type(surface) is not TorusGu:
@@ -149,6 +160,8 @@ class TorusGu(SurfacesGu):
         if d.Length > 1e-5:
             return False
         if abs(self.Axis.dot(surface.Axis)) < 0.99999:
+            return False
+        if self.a_sign != surface.a_sign:
             return False
         return True
 
@@ -331,10 +344,19 @@ class FaceGu(object):
         if shape1 is shape2:
             return (0,)
         else:
-            try:
-                dist2Shape = shape1.distToShape(shape2)
-            except:
-                dist2Shape = shape2.distToShape(shape1)
+            box1MinDim = min(shape1.BoundBox.XLength, shape1.BoundBox.YLength, shape1.BoundBox.ZLength)
+            box2MinDim = min(shape2.BoundBox.XLength, shape2.BoundBox.YLength, shape2.BoundBox.ZLength)
+            planeBox = box1MinDim < 1e-8 or box2MinDim < 1.0e-8
+            if shape1.BoundBox.intersect(shape2.BoundBox) or planeBox:
+                try:
+                    dist2Shape = shape1.distToShape(shape2)
+                except:
+                    dist2Shape = shape2.distToShape(shape1)
+            else:
+                c1 = shape1.BoundBox.Center
+                c2 = shape2.BoundBox.Center
+                d = c2 - c1
+                dist2Shape = (d.Length, 0)
             return dist2Shape
 
 

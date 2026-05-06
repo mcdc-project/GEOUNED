@@ -89,6 +89,14 @@ class BoolSequence:
             self.level = -1
             return
 
+        if type(seq) is list or type(seq) is tuple:
+            if len(seq) > 1:
+                self.elements = list(*seq)
+                self.level_update()
+                return
+            else:
+                seq = seq[0]
+
         self.operator = seq.operator
         self.elements = seq.elements
         self.level = seq.level
@@ -624,7 +632,7 @@ class BoolSequence:
     def get_surfaces_numbers(self):
         """Return the list of all surfaces in the BoolSequence definition."""
         if type(self.elements) is bool:
-            return tuple()
+            return set()
         surf = set()
         for e in self.elements:
             if type(e) is int:
