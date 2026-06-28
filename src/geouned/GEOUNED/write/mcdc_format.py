@@ -15,12 +15,10 @@ logger = logging.getLogger("general_logger")
 
 
 class MCDCInput:
-    def __init__(self, Meta, Surfaces, options, tolerances, numeric_format):
+    def __init__(self, Meta, Surfaces, options, tolerances):
         self.Cells = Meta
         self.options = options
         self.tolerances = tolerances
-        self.numeric_format = numeric_format
-
         self.get_surface_table()
         self.simplify_planes(Surfaces)
         self.Surfaces = self.sorted_surfaces(Surfaces)
@@ -81,8 +79,7 @@ import numpy as np
         surfType, coeffs = mcdc_surface(
             surface.Type,
             surface.Surf,
-            self.tolerances,
-            self.numeric_format)
+            self.tolerances)
         
         if not boundary:
             line = f"S{surface.Index} = mcdc.Surface.{surfType}({coeffs})\n"

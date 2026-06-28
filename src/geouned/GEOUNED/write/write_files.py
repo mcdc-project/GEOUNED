@@ -154,5 +154,5 @@ def write_geometry(
     
     if "mcdc" in outFormat:
         mcdcFilename = filePath / (geometryName + "_mcdc" + ".py")
-        MCDCFile = MCDCInput(MetaList, Surfaces, options, tolerances, numeric_format)
+        MCDCFile = MCDCInput(MetaList, Surfaces, options, tolerances)
         MCDCFile.write_py(mcdcFilename)

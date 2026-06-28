@@ -1137,7 +1137,7 @@ def phits_surface(id, Type, surf, options, tolerance, numeric_format):
 
     return trim(phits_def, 80)
 
-def mcdc_surface(Type, surf, tolerances, numeric_format=None):
+def mcdc_surface(Type, surf, tolerances):
     if Type == "Plane":
         A = surf.Axis.x
         B = surf.Axis.y
